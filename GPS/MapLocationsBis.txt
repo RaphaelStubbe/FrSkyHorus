@@ -1,0 +1,20 @@
+Map small locations are
+
+North	  50.666512°
+South	  50.664198°
+West 	   4.071801°
+East	   4.079747°
+
+Map medium locations are
+
+North	  50.667429°
+South	  50.663318°
+West 	   4.070252°
+East	   4.082528°
+
+Map large locations are
+
+North	  50.668695°
+South	  50.661725°
+West 	   4.067960°
+East	   4.084409°
