@@ -1,8 +1,5 @@
 
 local options = {
-    { "ControlX", SOURCE, 1 },
-    { "ScrollZ", BOOL, 1 }, -- BOOL is actually not a boolean, but toggles between 0 and 1
-    { "StepZ", VALUE, 1, 0, 10},
     { "COLOR", COLOR, RED },
 }
 
@@ -12,7 +9,6 @@ local function create(zone, options)
 
     local MyZone = { zone=zone, options=options,vDistance=vDistance,vRadius=vRadius, counter=0 }
 
-  -- print(options.Option2)
     lcd.setColor( CUSTOM_COLOR, options.COLOR )
   --create array containing all sensor ID's used for quicker retrieval
     local ID = {}
@@ -27,11 +23,13 @@ local function create(zone, options)
     return MyZone
 end
 
+-- widget update function is called upon registration and at change of settings in the telemetry setup menu
 local function update(MyZone, options)
     MyZone.options = options
     lcd.setColor( CUSTOM_COLOR, options.COLOR )
 end
 
+-- widget background function is periodically called when custom telemetry screen is not visible
 local function background(MyZone)
 
     MyZone.gpsLatLong = getValue(MyZone.ID.GPS)
@@ -52,7 +50,7 @@ local function background(MyZone)
 end
 
 
--- Refresh
+-- widget refresh function is periodically called when custom telemetry screen is visible
 function refresh(MyZone)
 
     -- If no GPS data, set variable to 0 to avoid scripting error during lcd.drawtext
@@ -73,7 +71,7 @@ function refresh(MyZone)
   lcd.drawNumber(MyZone.zone.x+40, MyZone.zone.y+15, GPSTable.numsat, CUSTOM_COLOR);
 
   if (GPSTable.fix==true) then
-	lcd.drawText(MyZone.zone.x, MyZone.zone.y+30, string.format("%f",GPSTable.lat), CUSTOM_COLOR);
+    lcd.drawText(MyZone.zone.x, MyZone.zone.y+30, string.format("%f",GPSTable.lat), CUSTOM_COLOR);
     lcd.drawText(MyZone.zone.x, MyZone.zone.y+45, string.format("%f",GPSTable.lon), CUSTOM_COLOR);
 
     local radian = math.pi / 180
