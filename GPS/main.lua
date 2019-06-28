@@ -1,14 +1,14 @@
 
 
 local options = {
-  { "TextColor", COLOR, Black }
+  { "COLOR", COLOR, RED },
 }
 
 
 -- in the create function you add all shared variables to the array containing the widget data ('thisWidget')
 local function create(zone, options)
   local thisWidget  = { zone=zone, options=options}
-  
+  lcd.setColor( CUSTOM_COLOR, options.COLOR )
   --create array containing all sensor ID's used for quicker retrieval
   local ID = {}
   ID.GPS = getFieldInfo("GPS") and getFieldInfo("GPS").id	or 0
@@ -92,13 +92,13 @@ local function background(thisWidget)
   local East = thisWidget.map.East
   local West = thisWidget.map.West
     
-  if thisWidget.gpsLat < North.small and thisWidget.gpsLat > South.small and thisWidget.gpsLong < East.small and thisWidget.gpsLong > West.small then    
-    thisWidget.map.current = "small"
-  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
-    thisWidget.map.current = "medium"
-  else    
+ -- if thisWidget.gpsLat < North.small and thisWidget.gpsLat > South.small and thisWidget.gpsLong < East.small and thisWidget.gpsLong > West.small then    
+--    thisWidget.map.current = "small"
+--  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
+--    thisWidget.map.current = "medium"
+--  else    
     thisWidget.map.current = "large"
-  end
+--  end
 
 -- Part for setting the correct zoomlevel ends here.
 
@@ -133,6 +133,7 @@ end
 
 local function update(thisWidget, options)
   thisWidget.options = options
+  lcd.setColor( CUSTOM_COLOR, thisWidget.options.COLOR )
 end
 
 local function refresh(thisWidget)
@@ -140,7 +141,7 @@ local function refresh(thisWidget)
 
   if  (type(thisWidget.gpsLatLong) ~= "table") then
     lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x -10, thisWidget.zone.y -10)
-    lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
+    --lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
     lcd.drawText( 20, 130, "No GPS SIGNAL !!!", DBLSIZE, CUSTOM_COLOR)
     return
   end
@@ -180,14 +181,14 @@ local function refresh(thisWidget)
   
   
 --draw background  
-  lcd.drawBitmap(thisWidget.map.bmp[thisWidget.map.current], thisWidget.zone.x -10, thisWidget.zone.y -10)
+  lcd.drawBitmap(thisWidget.map.bmp.small, thisWidget.zone.x -10, thisWidget.zone.y -10)
 
 --draw info
-  lcd.setColor(CUSTOM_COLOR, RED)
+  lcd.setColor( CUSTOM_COLOR, thisWidget.options.COLOR )
   lcd.drawText(40, 40, thisWidget.gpsLat, CUSTOM_COLOR)
-  lcd.setColor(CUSTOM_COLOR, WHITE)
+  -- lcd.setColor(CUSTOM_COLOR, WHITE)
   lcd.drawText(40, 60, thisWidget.gpsLong , CUSTOM_COLOR)
-  lcd.setColor(CUSTOM_COLOR, BLUE)
+ --  lcd.setColor(CUSTOM_COLOR, BLUE)
   lcd.drawText(40, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
   lcd.drawText(40, 100, thisWidget.x , CUSTOM_COLOR)
   lcd.drawText(40, 120, thisWidget.y , CUSTOM_COLOR)
