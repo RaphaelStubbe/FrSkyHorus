@@ -19,8 +19,8 @@ local function create(zone, options)
   thisWidget.ID = ID	
 
   --create array containing all map info per map size
-  local map = {North={},South={},West={},East={},wx={},wy={},zx={},zy={}}
-		
+  local map = {North={},South={},West={},East={},wx={},wy={},zx={},zy={},Pxa={},Pya={},Pxb={},Pyb={},Pxc={},Pyc={},Pxd={},Pyd={}}
+	local noflightzone = {long={},lat={}}	
   -- coordinates for the small map.
   map.North.small = 50.666512
   map.South.small = 50.664198
@@ -30,7 +30,15 @@ local function create(zone, options)
   map.wy.small = 0
   map.zx.small = 479
   map.zy.small = 210
-
+  map.Pxa.small = 0 
+  map.Pya.small = 0
+  map.Pxb.small = 0
+  map.Pyb.small = 0
+  map.Pxc.small = 0
+  map.Pyc.small = 0
+  map.Pxd.small = 0
+  map.Pyd.small = 0
+  
   -- coordinates for the medium map.
   map.North.medium = 50.667429
   map.South.medium = 50.663318
@@ -50,7 +58,17 @@ local function create(zone, options)
   map.wy.large = 0
   map.zx.large = 410
   map.zy.large = 271
-		
+    
+  -- coordinates for noflightzone
+  noflightzone.lat.a=50.665495
+  noflightzone.long.a=4.075388
+  noflightzone.lat.b=50.665806
+  noflightzone.long.b=4.076264
+  noflightzone.lat.c=50.665371
+  noflightzone.long.c=4.075456
+  noflightzone.lat.d=50.665394
+  noflightzone.long.d=4.07606669
+
   --add one bitmap per map size and set current map size
   map.bmp={}
   map.bmp.small = Bitmap.open("/Widgets/GPS/map.png")
@@ -61,7 +79,8 @@ local function create(zone, options)
   map.current = "large"
 
   --add the map array to thisWidget
-  thisWidget.map = map	
+  thisWidget.map = map
+  thisWidget.noflightzone = noflightzone	
   
   --return the thisWidget array to the opentx API, containing all data to be shared across functions
   return thisWidget
@@ -97,7 +116,7 @@ local function background(thisWidget)
 --  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
 --    thisWidget.map.current = "medium"
 --  else    
-    thisWidget.map.current = "large"
+    thisWidget.map.current = "small"
 --  end
 
 -- Part for setting the correct zoomlevel ends here.
@@ -114,18 +133,36 @@ local function background(thisWidget)
   local zy = thisWidget.map.zy[thisWidget.map.current]
 
 
+  --model coordonate related to the map size
   thisWidget.x = math.floor(480*((thisWidget.gpsLong - West)/(East - West)))
   thisWidget.y = math.floor(272*((North - thisWidget.gpsLat)/(North - South)))
 
+  --No fliyng zone Point polygone
+  thisWidget.map.Pxa[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.a - West)/(East - West)))
+  thisWidget.map.Pya[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.a)/(North - South)))
+  thisWidget.map.Pxb[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.b - West)/(East - West)))
+  thisWidget.map.Pyb[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.b)/(North - South)))
+  thisWidget.map.Pxc[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.c - West)/(East - West)))
+  thisWidget.map.Pyc[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.c)/(North - South)))
+  thisWidget.map.Pxd[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.d - West)/(East - West)))
+  thisWidget.map.Pyd[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.d)/(North - South)))
+
+
+  --Check the max and min for bording edge
   thisWidget.x=math.max(10,thisWidget.x)
   thisWidget.x=math.min(thisWidget.x,470)
 
   thisWidget.y=math.max(10,thisWidget.y)
   thisWidget.y=math.min(thisWidget.y,262)
 
+  --Calculate the distance between thiswidget.x, Y and the no flying zone
+  
+
   if ((thisWidget.x - wx)*(zy-wy))-((thisWidget.y - wy)*(zx-wx)) < 0 then
+    --Not in no flight area --> flying area permited
     model.setGlobalVariable(8,0,0)
   else 
+    -- In not flight area --> flying area not permited
     model.setGlobalVariable(8,0,1)
   end
 
@@ -154,7 +191,7 @@ local function refresh(thisWidget)
 --                     A
 --                     |
 --                     |
--- C   _________________|___________________  D
+-- C  _________________|___________________  D
 --                     |
 --                     |
 --                     |
@@ -190,9 +227,17 @@ local function refresh(thisWidget)
   lcd.drawText(40, 60, thisWidget.gpsLong , CUSTOM_COLOR)
  --  lcd.setColor(CUSTOM_COLOR, BLUE)
   lcd.drawText(40, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
-  lcd.drawText(40, 100, thisWidget.x , CUSTOM_COLOR)
-  lcd.drawText(40, 120, thisWidget.y , CUSTOM_COLOR)
-  
+--  lcd.drawText(40, 100, thisWidget.x , CUSTOM_COLOR)
+--  lcd.drawText(40, 120, thisWidget.y , CUSTOM_COLOR)
+  lcd.drawText(40, 100, thisWidget.map.Pxa[thisWidget.map.current] , CUSTOM_COLOR)
+  lcd.drawText(40, 120, thisWidget.map.Pya[thisWidget.map.current] , CUSTOM_COLOR)  
+  lcd.drawText(40, 140, thisWidget.map.Pxb[thisWidget.map.current] , CUSTOM_COLOR)
+  lcd.drawText(40, 160, thisWidget.map.Pyb[thisWidget.map.current] , CUSTOM_COLOR) 
+  lcd.drawText(40, 180, thisWidget.map.Pxc[thisWidget.map.current] , CUSTOM_COLOR)
+  lcd.drawText(40, 200, thisWidget.map.Pyc[thisWidget.map.current] , CUSTOM_COLOR) 
+  lcd.drawText(40, 220, thisWidget.map.Pxd[thisWidget.map.current] , CUSTOM_COLOR)
+  lcd.drawText(40, 240, thisWidget.map.Pyd[thisWidget.map.current] , CUSTOM_COLOR) 
+
 --draw plane  
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,255,255))
   lcd.drawLine(xvalues.ax, yvalues.ay, xvalues.bx, yvalues.by, SOLID, CUSTOM_COLOR)
@@ -201,7 +246,11 @@ local function refresh(thisWidget)
 
 --draw noflightzone
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
-  lcd.drawLine(thisWidget.map.wx[thisWidget.map.current], thisWidget.map.wy[thisWidget.map.current], thisWidget.map.zx[thisWidget.map.current], thisWidget.map.zy[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+-- lcd.drawLine(thisWidget.map.wx[thisWidget.map.current], thisWidget.map.wy[thisWidget.map.current], thisWidget.map.zx[thisWidget.map.current], thisWidget.map.zy[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+lcd.drawLine(thisWidget.map.Pxa[thisWidget.map.current], thisWidget.map.Pya[thisWidget.map.current], thisWidget.map.Pxb[thisWidget.map.current], thisWidget.map.Pyb[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+lcd.drawLine(thisWidget.map.Pxb[thisWidget.map.current], thisWidget.map.Pyb[thisWidget.map.current], thisWidget.map.Pxd[thisWidget.map.current], thisWidget.map.Pyd[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+lcd.drawLine(thisWidget.map.Pxc[thisWidget.map.current], thisWidget.map.Pyc[thisWidget.map.current], thisWidget.map.Pxa[thisWidget.map.current], thisWidget.map.Pya[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+lcd.drawLine(thisWidget.map.Pxd[thisWidget.map.current], thisWidget.map.Pyd[thisWidget.map.current], thisWidget.map.Pxc[thisWidget.map.current], thisWidget.map.Pyc[thisWidget.map.current], SOLID, CUSTOM_COLOR)
 
 end
 return { name="Map", options=options, create=create, update=update, background=background, refresh=refresh }
