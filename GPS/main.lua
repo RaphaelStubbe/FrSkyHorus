@@ -131,6 +131,15 @@ local function background(thisWidget)
   local wy = thisWidget.map.wy[thisWidget.map.current]
   local zx = thisWidget.map.zx[thisWidget.map.current]
   local zy = thisWidget.map.zy[thisWidget.map.current]
+  Pxa = thisWidget.map.Pxa[thisWidget.map.current]
+  Pya = thisWidget.map.Pya[thisWidget.map.current]
+  Pxb = thisWidget.map.Pxb[thisWidget.map.current]
+  Pyb = thisWidget.map.Pyb[thisWidget.map.current]
+  Pxc = thisWidget.map.Pxc[thisWidget.map.current]
+  Pyc = thisWidget.map.Pyc[thisWidget.map.current]
+  Pxd = thisWidget.map.Pxd[thisWidget.map.current]
+  Pyd = thisWidget.map.Pyd[thisWidget.map.current]
+
 
 
   --model coordonate related to the map size
@@ -138,33 +147,54 @@ local function background(thisWidget)
   thisWidget.y = math.floor(272*((North - thisWidget.gpsLat)/(North - South)))
 
   --No fliyng zone Point polygone
-  thisWidget.map.Pxa[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.a - West)/(East - West)))
-  thisWidget.map.Pya[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.a)/(North - South)))
-  thisWidget.map.Pxb[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.b - West)/(East - West)))
-  thisWidget.map.Pyb[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.b)/(North - South)))
-  thisWidget.map.Pxc[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.c - West)/(East - West)))
-  thisWidget.map.Pyc[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.c)/(North - South)))
-  thisWidget.map.Pxd[thisWidget.map.current]=math.floor(480*((thisWidget.noflightzone.long.d - West)/(East - West)))
-  thisWidget.map.Pyd[thisWidget.map.current]=math.floor(272*((North - thisWidget.noflightzone.lat.d)/(North - South)))
+  Pxa = math.floor(480*((thisWidget.noflightzone.long.a - West)/(East - West)))
+  Pya = math.floor(272*((North - thisWidget.noflightzone.lat.a)/(North - South)))
+  Pxb = math.floor(480*((thisWidget.noflightzone.long.b - West)/(East - West)))
+  Pyb = math.floor(272*((North - thisWidget.noflightzone.lat.b)/(North - South)))
+  Pxc = math.floor(480*((thisWidget.noflightzone.long.c - West)/(East - West)))
+  Pyc = math.floor(272*((North - thisWidget.noflightzone.lat.c)/(North - South)))
+  Pxd = math.floor(480*((thisWidget.noflightzone.long.d - West)/(East - West)))
+  Pyd = math.floor(272*((North - thisWidget.noflightzone.lat.d)/(North - South)))
 
 
   --Check the max and min for bording edge
-  thisWidget.x=math.max(10,thisWidget.x)
-  thisWidget.x=math.min(thisWidget.x,470)
+  thisWidget.x = math.max(10,thisWidget.x)
+  thisWidget.x = math.min(thisWidget.x,470)
 
-  thisWidget.y=math.max(10,thisWidget.y)
-  thisWidget.y=math.min(thisWidget.y,262)
+  thisWidget.y = math.max(10,thisWidget.y)
+  thisWidget.y = math.min(thisWidget.y,262)
 
-  --Calculate the distance between thiswidget.x, Y and the no flying zone
-  
+  --Calculate the distance between thiswidget.x, Y and each corner of the no flying zone
+  Distab = (math.sqrt( (Pxa - Pxb)^2 +(Pya - Pyb)^2))
+  Distac = (math.sqrt( (Pxa - Pxc)^2 +(Pya - Pyc)^2))
+  Distbd = (math.sqrt( (Pxb - Pxd)^2 +(Pyb - Pyd)^2))
+  Distcd = (math.sqrt( (Pxc - Pxd)^2 +(Pyc - Pyd)^2))
 
-  if ((thisWidget.x - wx)*(zy-wy))-((thisWidget.y - wy)*(zx-wx)) < 0 then
+  DistPa = (math.sqrt( (thisWidget.x - Pxa)^2 +(thisWidget.y - Pya)^2))
+  DistPb = (math.sqrt( (thisWidget.x - Pxb)^2 +(thisWidget.y - Pyb)^2))
+  DistPc = (math.sqrt( (thisWidget.x - Pxc)^2 +(thisWidget.y - Pyc)^2))
+  DistPd = (math.sqrt( (thisWidget.x - Pxd)^2 +(thisWidget.y - Pyd)^2))
+-- Check if distance = 0 then Thiswidget.x, y is on the point it self
+
+
+-- else check if thewidget.x, y is in the noflyingzone (only for convex noflyingzone coordonate)
+-- CosA = a² - b² - c² / -2bc
+
+AlphaPab = math.deg(math.acos((Distab^2 - DistPa^2 - DistPb^2)/(-2 * DistPa * DistPb)))
+AlphaPac = math.deg(math.acos((Distac^2 - DistPa^2 - DistPc^2)/(-2 * DistPa * DistPc)))
+AlphaPbd = math.deg(math.acos((Distbd^2 - DistPb^2 - DistPd^2)/(-2 * DistPb * DistPd)))
+AlphaPcd = math.deg(math.acos((Distcd^2 - DistPc^2 - DistPd^2)/(-2 * DistPc * DistPd)))
+
+Alpha = AlphaPab + AlphaPac + AlphaPbd + AlphaPcd
+
+
+  if Alpha == 360 then
+    -- In not flight area --> flying area not permite
+    model.setGlobalVariable(8,0,1)
+ else 
     --Not in no flight area --> flying area permited
     model.setGlobalVariable(8,0,0)
-  else 
-    -- In not flight area --> flying area not permited
-    model.setGlobalVariable(8,0,1)
-  end
+ end
 
 end
 
@@ -188,6 +218,14 @@ local function refresh(thisWidget)
   local headingDeg = thisWidget.headingDeg
   local x = thisWidget.x
   local y = thisWidget.y
+--  local Pxa = thisWidget.map.Pxa[thisWidget.map.current]
+--  local Pya = thisWidget.map.Pya[thisWidget.map.current]
+--  local Pxb = thisWidget.map.Pxb[thisWidget.map.current]
+--  local Pyb = thisWidget.map.Pyb[thisWidget.map.current]
+--  local Pxc = thisWidget.map.Pxc[thisWidget.map.current]
+--  local Pyc = thisWidget.map.Pyc[thisWidget.map.current]
+--  local Pxd = thisWidget.map.Pxd[thisWidget.map.current]
+--  local Pyd = thisWidget.map.Pyd[thisWidget.map.current]
 --                     A
 --                     |
 --                     |
@@ -229,14 +267,15 @@ local function refresh(thisWidget)
   lcd.drawText(40, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
 --  lcd.drawText(40, 100, thisWidget.x , CUSTOM_COLOR)
 --  lcd.drawText(40, 120, thisWidget.y , CUSTOM_COLOR)
-  lcd.drawText(40, 100, thisWidget.map.Pxa[thisWidget.map.current] , CUSTOM_COLOR)
-  lcd.drawText(40, 120, thisWidget.map.Pya[thisWidget.map.current] , CUSTOM_COLOR)  
-  lcd.drawText(40, 140, thisWidget.map.Pxb[thisWidget.map.current] , CUSTOM_COLOR)
-  lcd.drawText(40, 160, thisWidget.map.Pyb[thisWidget.map.current] , CUSTOM_COLOR) 
-  lcd.drawText(40, 180, thisWidget.map.Pxc[thisWidget.map.current] , CUSTOM_COLOR)
-  lcd.drawText(40, 200, thisWidget.map.Pyc[thisWidget.map.current] , CUSTOM_COLOR) 
-  lcd.drawText(40, 220, thisWidget.map.Pxd[thisWidget.map.current] , CUSTOM_COLOR)
-  lcd.drawText(40, 240, thisWidget.map.Pyd[thisWidget.map.current] , CUSTOM_COLOR) 
+  lcd.drawText(40, 100, DistPa , CUSTOM_COLOR)
+  lcd.drawText(40, 120, DistPb , CUSTOM_COLOR)  
+  lcd.drawText(40, 140, DistPc , CUSTOM_COLOR)
+  lcd.drawText(40, 160, DistPd , CUSTOM_COLOR) 
+  lcd.drawText(40, 180, Alpha , CUSTOM_COLOR) 
+ -- lcd.drawText(40, 180, Pxc , CUSTOM_COLOR)
+ -- lcd.drawText(40, 200, Pyc , CUSTOM_COLOR) 
+ -- lcd.drawText(40, 220, Pxd , CUSTOM_COLOR)
+ -- lcd.drawText(40, 240, Pyd , CUSTOM_COLOR) 
 
 --draw plane  
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,255,255))
@@ -247,10 +286,10 @@ local function refresh(thisWidget)
 --draw noflightzone
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
 -- lcd.drawLine(thisWidget.map.wx[thisWidget.map.current], thisWidget.map.wy[thisWidget.map.current], thisWidget.map.zx[thisWidget.map.current], thisWidget.map.zy[thisWidget.map.current], SOLID, CUSTOM_COLOR)
-lcd.drawLine(thisWidget.map.Pxa[thisWidget.map.current], thisWidget.map.Pya[thisWidget.map.current], thisWidget.map.Pxb[thisWidget.map.current], thisWidget.map.Pyb[thisWidget.map.current], SOLID, CUSTOM_COLOR)
-lcd.drawLine(thisWidget.map.Pxb[thisWidget.map.current], thisWidget.map.Pyb[thisWidget.map.current], thisWidget.map.Pxd[thisWidget.map.current], thisWidget.map.Pyd[thisWidget.map.current], SOLID, CUSTOM_COLOR)
-lcd.drawLine(thisWidget.map.Pxc[thisWidget.map.current], thisWidget.map.Pyc[thisWidget.map.current], thisWidget.map.Pxa[thisWidget.map.current], thisWidget.map.Pya[thisWidget.map.current], SOLID, CUSTOM_COLOR)
-lcd.drawLine(thisWidget.map.Pxd[thisWidget.map.current], thisWidget.map.Pyd[thisWidget.map.current], thisWidget.map.Pxc[thisWidget.map.current], thisWidget.map.Pyc[thisWidget.map.current], SOLID, CUSTOM_COLOR)
+lcd.drawLine(Pxa, Pya, Pxb, Pyb, SOLID, CUSTOM_COLOR)
+lcd.drawLine(Pxb, Pyb, Pxd, Pyd, SOLID, CUSTOM_COLOR)
+lcd.drawLine(Pxc, Pyc, Pxa, Pya, SOLID, CUSTOM_COLOR)
+lcd.drawLine(Pxd, Pyd, Pxc, Pyc, SOLID, CUSTOM_COLOR)
 
 end
 return { name="Map", options=options, create=create, update=update, background=background, refresh=refresh }
