@@ -2,6 +2,7 @@
 
 local options = {
   { "COLOR", COLOR, RED },
+  { "Hook", SOURCE, 1 },
 }
 
 
@@ -50,24 +51,24 @@ local function create(zone, options)
   map.zy.medium = 271
 
   --coordinates for the largest map. 
-  map.North.large = 50.668695
-  map.South.large = 50.661725
-  map.West.large = 4.067960
-  map.East.large = 4.084409
+  map.North.large = 50.668111
+  map.South.large = 50.663844
+  map.West.large = 4.069325
+  map.East.large = 4.081888
   map.wx.large = 197
   map.wy.large = 0
   map.zx.large = 410
   map.zy.large = 271
     
   -- coordinates for noflightzone
-  noflightzone.lat.a=50.665495
-  noflightzone.long.a=4.075388
-  noflightzone.lat.b=50.665806
-  noflightzone.long.b=4.076264
-  noflightzone.lat.c=50.665371
-  noflightzone.long.c=4.075456
-  noflightzone.lat.d=50.665394
-  noflightzone.long.d=4.07606669
+  noflightzone.lat.a=50.665616
+  noflightzone.long.a=4.074794
+  noflightzone.lat.b=50.666045
+  noflightzone.long.b=4.076014
+  noflightzone.lat.c=50.665087
+  noflightzone.long.c=4.075309
+  noflightzone.lat.d=50.665009
+  noflightzone.long.d=4.077108
 
   --add one bitmap per map size and set current map size
   map.bmp={}
@@ -100,6 +101,7 @@ local function background(thisWidget)
   thisWidget.headingDeg= getValue(thisWidget.ID.Hdg)  
   thisWidget.gpsLat = thisWidget.gpsLatLong.lat
   thisWidget.gpsLong = thisWidget.gpsLatLong.lon
+--  thisWidget.gpsSat = thisWidget.gpsLatLong.numsat
   
 -- Part for loading the correct zoomlevel of the map
 
@@ -116,7 +118,7 @@ local function background(thisWidget)
 --  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
 --    thisWidget.map.current = "medium"
 --  else    
-    thisWidget.map.current = "small"
+    thisWidget.map.current = "large"
 --  end
 
 -- Part for setting the correct zoomlevel ends here.
@@ -188,14 +190,23 @@ AlphaPcd = math.deg(math.acos((Distcd^2 - DistPc^2 - DistPd^2)/(-2 * DistPc * Di
 Alpha = AlphaPab + AlphaPac + AlphaPbd + AlphaPcd
 
 
-  if Alpha == 360 then
+  --if Alpha == 360 then
     -- In not flight area --> flying area not permite
-    model.setGlobalVariable(8,0,1)
- else 
+   -- model.setGlobalVariable(8,0,1)
+ --else 
     --Not in no flight area --> flying area permited
-    model.setGlobalVariable(8,0,0)
- end
+    --model.setGlobalVariable(8,0,0)
+ --end
 
+ -- switch position for hock, log the gps coordonates
+--  switchpos = getValue('sd')
+  --during value -1024 log
+  if Alpha == 360 then
+    model.setGlobalVariable(8,0,1)
+    playTone(1000,1000,1000,PLAY_NOW)
+  else
+     model.setGlobalVariable(8,0,0)
+  end
 end
 
 local function update(thisWidget, options)
@@ -218,14 +229,7 @@ local function refresh(thisWidget)
   local headingDeg = thisWidget.headingDeg
   local x = thisWidget.x
   local y = thisWidget.y
---  local Pxa = thisWidget.map.Pxa[thisWidget.map.current]
---  local Pya = thisWidget.map.Pya[thisWidget.map.current]
---  local Pxb = thisWidget.map.Pxb[thisWidget.map.current]
---  local Pyb = thisWidget.map.Pyb[thisWidget.map.current]
---  local Pxc = thisWidget.map.Pxc[thisWidget.map.current]
---  local Pyc = thisWidget.map.Pyc[thisWidget.map.current]
---  local Pxd = thisWidget.map.Pxd[thisWidget.map.current]
---  local Pyd = thisWidget.map.Pyd[thisWidget.map.current]
+
 --                     A
 --                     |
 --                     |
@@ -256,40 +260,42 @@ local function refresh(thisWidget)
   
   
 --draw background  
-  lcd.drawBitmap(thisWidget.map.bmp.small, thisWidget.zone.x -10, thisWidget.zone.y -10)
+  lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x -10, thisWidget.zone.y -10)
 
 --draw info
   lcd.setColor( CUSTOM_COLOR, thisWidget.options.COLOR )
-  lcd.drawText(40, 40, thisWidget.gpsLat, CUSTOM_COLOR)
-  -- lcd.setColor(CUSTOM_COLOR, WHITE)
-  lcd.drawText(40, 60, thisWidget.gpsLong , CUSTOM_COLOR)
- --  lcd.setColor(CUSTOM_COLOR, BLUE)
-  lcd.drawText(40, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
---  lcd.drawText(40, 100, thisWidget.x , CUSTOM_COLOR)
---  lcd.drawText(40, 120, thisWidget.y , CUSTOM_COLOR)
-  lcd.drawText(40, 100, DistPa , CUSTOM_COLOR)
-  lcd.drawText(40, 120, DistPb , CUSTOM_COLOR)  
-  lcd.drawText(40, 140, DistPc , CUSTOM_COLOR)
-  lcd.drawText(40, 160, DistPd , CUSTOM_COLOR) 
-  lcd.drawText(40, 180, Alpha , CUSTOM_COLOR) 
- -- lcd.drawText(40, 180, Pxc , CUSTOM_COLOR)
- -- lcd.drawText(40, 200, Pyc , CUSTOM_COLOR) 
- -- lcd.drawText(40, 220, Pxd , CUSTOM_COLOR)
- -- lcd.drawText(40, 240, Pyd , CUSTOM_COLOR) 
+  lcd.drawText(10, 10, "GPS Model:", CUSTOM_COLOR)
+  lcd.drawText(10, 40, "Lat: " , CUSTOM_COLOR)
+  lcd.drawText(60, 40, thisWidget.gpsLat, CUSTOM_COLOR)
+  lcd.drawText(10, 60, "Long: " , CUSTOM_COLOR)
+  lcd.drawText(60, 60, thisWidget.gpsLong , CUSTOM_COLOR)
+  lcd.drawText(10, 80, "Hdg: ", CUSTOM_COLOR)
+  lcd.drawText(60, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
+
+  local mm = model.getGlobalVariable(8,0)
+  lcd.drawText(10, 100, "GB: " , CUSTOM_COLOR)
+  lcd.drawText(60, 100, mm , CUSTOM_COLOR)
+
+--  lcd.drawText(10, 120, "Sat: " , CUSTOM_COLOR)
+--  lcd.drawText(60, 120, thisWidget.gpsSat , CUSTOM_COLOR) --Sum angle
+
+
+--  lcd.drawText(10, 120, "Sum Alpha: " , CUSTOM_COLOR)
+--  lcd.drawText(60, 120, Alpha , CUSTOM_COLOR) --Sum angle
 
 --draw plane  
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,255,255))
-  lcd.drawLine(xvalues.ax, yvalues.ay, xvalues.bx, yvalues.by, SOLID, CUSTOM_COLOR)
-  lcd.drawLine(xvalues.cx, yvalues.cy, xvalues.dx, yvalues.dy, SOLID, CUSTOM_COLOR)
-  lcd.drawLine(xvalues.ex, yvalues.ey, xvalues.fx, yvalues.fy, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.ax , yvalues.ay , xvalues.bx , yvalues.by , SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.cx , yvalues.cy , xvalues.dx , yvalues.dy , SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.ex , yvalues.ey , xvalues.fx , yvalues.fy , SOLID, CUSTOM_COLOR)
 
 --draw noflightzone
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
--- lcd.drawLine(thisWidget.map.wx[thisWidget.map.current], thisWidget.map.wy[thisWidget.map.current], thisWidget.map.zx[thisWidget.map.current], thisWidget.map.zy[thisWidget.map.current], SOLID, CUSTOM_COLOR)
-lcd.drawLine(Pxa, Pya, Pxb, Pyb, SOLID, CUSTOM_COLOR)
-lcd.drawLine(Pxb, Pyb, Pxd, Pyd, SOLID, CUSTOM_COLOR)
-lcd.drawLine(Pxc, Pyc, Pxa, Pya, SOLID, CUSTOM_COLOR)
-lcd.drawLine(Pxd, Pyd, Pxc, Pyc, SOLID, CUSTOM_COLOR)
+
+  lcd.drawLine(Pxa -10, Pya -10, Pxb -10, Pyb -10, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxb -10, Pyb -10, Pxd -10, Pyd -10, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxc -10, Pyc -10, Pxa -10, Pya -10, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxd -10, Pyd -10, Pxc -10, Pyc -10, SOLID, CUSTOM_COLOR)
 
 end
 return { name="Map", options=options, create=create, update=update, background=background, refresh=refresh }

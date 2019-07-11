@@ -1,6 +1,7 @@
 
 local options = {
     { "COLOR", COLOR, RED },
+    { "Hook", SOURCE, 1 },
 }
 
 local function create(zone, options)
