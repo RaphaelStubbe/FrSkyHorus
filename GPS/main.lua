@@ -2,7 +2,9 @@
 
 local options = {
   { "COLOR", COLOR, RED },
-  { "Hook", SOURCE, 1 },
+  { "HOOK", SOURCE, 15 },
+  { "SOUND", BOOL, 1},
+  { "TXGps", BOOL, 1},
 }
 
 
@@ -11,6 +13,16 @@ local function create(zone, options)
   local thisWidget  = { zone=zone, options=options}
   lcd.setColor( CUSTOM_COLOR, options.COLOR )
   --create array containing all sensor ID's used for quicker retrieval
+
+  local HookRelease = {}
+  HookRelease.Lat = 0
+  HookRelease.Long = 0 
+  HookRelease.Pos = "OPEN"
+  HookRelease.Memo = 0
+
+  --add HookRelease to this widget
+  thisWidget.HookRelease = HookRelease
+
   local ID = {}
   ID.GPS = getFieldInfo("GPS") and getFieldInfo("GPS").id	or 0
   ID.Hdg = getFieldInfo("Hdg") and getFieldInfo("Hdg").id or 0
@@ -18,6 +30,7 @@ local function create(zone, options)
   
   --add ID to thisWidget
   thisWidget.ID = ID	
+
 
   --create array containing all map info per map size
   local map = {North={},South={},West={},East={},wx={},wy={},zx={},zy={},Pxa={},Pya={},Pxb={},Pyb={},Pxc={},Pyc={},Pxd={},Pyd={}}
@@ -81,6 +94,7 @@ local function create(zone, options)
 
   --add the map array to thisWidget
   thisWidget.map = map
+  --add the noflightzone to thisWidget
   thisWidget.noflightzone = noflightzone	
   
   --return the thisWidget array to the opentx API, containing all data to be shared across functions
@@ -88,8 +102,9 @@ local function create(zone, options)
 end
 
 local function background(thisWidget)
-  
+ 
   thisWidget.gpsLatLong = getValue(thisWidget.ID.GPS)
+
   if  (type(thisWidget.gpsLatLong) ~= "table") then
     thisWidget.ID.GPS = getFieldInfo("GPS") and getFieldInfo("GPS").id	or 0
     thisWidget.ID.Hdg = getFieldInfo("Hdg") and getFieldInfo("Hdg").id or 0
@@ -101,29 +116,29 @@ local function background(thisWidget)
   thisWidget.headingDeg= getValue(thisWidget.ID.Hdg)  
   thisWidget.gpsLat = thisWidget.gpsLatLong.lat
   thisWidget.gpsLong = thisWidget.gpsLatLong.lon
---  thisWidget.gpsSat = thisWidget.gpsLatLong.numsat
+  --  thisWidget.gpsSat = thisWidget.gpsLatLong.numsat
   
--- Part for loading the correct zoomlevel of the map
+  -- Part for loading the correct zoomlevel of the map
 
--- coordinates for the smallest map. These can be found by placing the image back into Google Earth and looking at the overlay
--- parameters
+  -- coordinates for the smallest map. These can be found by placing the image back into Google Earth and looking at the overlay
+  -- parameters
 
   local North = thisWidget.map.North
   local South = thisWidget.map.South
   local East = thisWidget.map.East
   local West = thisWidget.map.West
     
- -- if thisWidget.gpsLat < North.small and thisWidget.gpsLat > South.small and thisWidget.gpsLong < East.small and thisWidget.gpsLong > West.small then    
---    thisWidget.map.current = "small"
---  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
---    thisWidget.map.current = "medium"
---  else    
+  -- if thisWidget.gpsLat < North.small and thisWidget.gpsLat > South.small and thisWidget.gpsLong < East.small and thisWidget.gpsLong > West.small then    
+  --    thisWidget.map.current = "small"
+  --  elseif thisWidget.gpsLat < North.medium and thisWidget.gpsLat > South.medium and thisWidget.gpsLong < East.medium and thisWidget.gpsLong > West.medium then    
+  --    thisWidget.map.current = "medium"
+  --  else    
     thisWidget.map.current = "large"
---  end
+  --  end
 
--- Part for setting the correct zoomlevel ends here.
+  -- Part for setting the correct zoomlevel ends here.
 
--- Calculate Position in relation to map. 
+  -- Calculate Position in relation to map. 
 
   North = North[thisWidget.map.current]
   South = South[thisWidget.map.current]
@@ -176,36 +191,44 @@ local function background(thisWidget)
   DistPb = (math.sqrt( (thisWidget.x - Pxb)^2 +(thisWidget.y - Pyb)^2))
   DistPc = (math.sqrt( (thisWidget.x - Pxc)^2 +(thisWidget.y - Pyc)^2))
   DistPd = (math.sqrt( (thisWidget.x - Pxd)^2 +(thisWidget.y - Pyd)^2))
--- Check if distance = 0 then Thiswidget.x, y is on the point it self
+  -- Check if distance = 0 then Thiswidget.x, y is on the point it self
 
 
--- else check if thewidget.x, y is in the noflyingzone (only for convex noflyingzone coordonate)
--- CosA = a² - b² - c² / -2bc
+  -- else check if thewidget.x, y is in the noflyingzone (only for convex noflyingzone coordonate)
+  -- CosA = a² - b² - c² / -2bc
 
-AlphaPab = math.deg(math.acos((Distab^2 - DistPa^2 - DistPb^2)/(-2 * DistPa * DistPb)))
-AlphaPac = math.deg(math.acos((Distac^2 - DistPa^2 - DistPc^2)/(-2 * DistPa * DistPc)))
-AlphaPbd = math.deg(math.acos((Distbd^2 - DistPb^2 - DistPd^2)/(-2 * DistPb * DistPd)))
-AlphaPcd = math.deg(math.acos((Distcd^2 - DistPc^2 - DistPd^2)/(-2 * DistPc * DistPd)))
+  AlphaPab = math.deg(math.acos((Distab^2 - DistPa^2 - DistPb^2)/(-2 * DistPa * DistPb)))
+  AlphaPac = math.deg(math.acos((Distac^2 - DistPa^2 - DistPc^2)/(-2 * DistPa * DistPc)))
+  AlphaPbd = math.deg(math.acos((Distbd^2 - DistPb^2 - DistPd^2)/(-2 * DistPb * DistPd)))
+  AlphaPcd = math.deg(math.acos((Distcd^2 - DistPc^2 - DistPd^2)/(-2 * DistPc * DistPd)))
 
-Alpha = AlphaPab + AlphaPac + AlphaPbd + AlphaPcd
+  Alpha = AlphaPab + AlphaPac + AlphaPbd + AlphaPcd
 
-
-  --if Alpha == 360 then
-    -- In not flight area --> flying area not permite
-   -- model.setGlobalVariable(8,0,1)
- --else 
-    --Not in no flight area --> flying area permited
-    --model.setGlobalVariable(8,0,0)
- --end
-
- -- switch position for hock, log the gps coordonates
---  switchpos = getValue('sd')
+  -- switch position for hock, log the gps coordonates
+  -- switchpos = getValue(thisWidget.options.HOOK)
+  switchpos = getValue('sd')
   --during value -1024 log
-  if Alpha == 360 then
-    model.setGlobalVariable(8,0,1)
-    playTone(1000,1000,1000,PLAY_NOW)
-  else
-     model.setGlobalVariable(8,0,0)
+  if (switchpos == -1024) and (thisWidget.HookRelease.Memo == 0) then
+    thisWidget.HookRelease.Memo= 1
+    thisWidget.HookRelease.Pos = "OPEN"
+    HookReleaseX = thisWidget.x
+    HookReleaseY = thisWidget.y
+    thisWidget.HookRelease.Lat = thisWidget.gpsLat
+    thisWidget.HookRelease.Long = thisWidget.gpsLong 
+  elseif (switchpos == 1024) then
+    thisWidget.HookRelease.Memo = 0
+    thisWidget.HookRelease.Pos = "CLOSE"
+  end
+
+-- Check if sum of all angles are equals to 360°, this means that we are inside the no flying zone
+  --if thisWidget.options.SOUND == 1) then
+  if thisWidget.options.SOUND == 1 then
+    if Alpha == 360 then
+      model.setGlobalVariable(8,0,1)
+      playTone(1000,1000,1000,PLAY_NOW)
+    else
+       model.setGlobalVariable(8,0,0)
+    end
   end
 end
 
@@ -217,8 +240,11 @@ end
 local function refresh(thisWidget)
   background(thisWidget)
 
+  local zoneXCorr = -10
+  local zoneYCorr = -10
+
   if  (type(thisWidget.gpsLatLong) ~= "table") then
-    lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x -10, thisWidget.zone.y -10)
+    lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x + zoneXCorr, thisWidget.zone.y + zoneYCorr)
     --lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
     lcd.drawText( 20, 130, "No GPS SIGNAL !!!", DBLSIZE, CUSTOM_COLOR)
     return
@@ -230,19 +256,19 @@ local function refresh(thisWidget)
   local x = thisWidget.x
   local y = thisWidget.y
 
---                     A
---                     |
---                     |
--- C  _________________|___________________  D
---                     |
---                     |
---                     |
---                     |
---                     |
---                     |
---                     |
---                E ---|--- F
---                     B
+  --                     A
+  --                     |
+  --                     |
+  -- C  _________________|___________________  D
+  --                     |
+  --                     |
+  --                     |
+  --                     |
+  --                     |
+  --                     |
+  --                     |
+  --                E ---|--- F
+  --                     B
 
 
   xvalues.ax = x + (4 * math.sin(math.rad(headingDeg))) 							-- front of fuselage x position
@@ -259,43 +285,65 @@ local function refresh(thisWidget)
   yvalues.fy = y + ((7 * math.cos(math.rad(headingDeg))) + (3 * math.sin(math.rad(headingDeg))))	-- right tailwing tip y position
   
   
---draw background  
-  lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x -10, thisWidget.zone.y -10)
+  --draw background  
+  lcd.drawBitmap(thisWidget.map.bmp.large, thisWidget.zone.x + zoneXCorr, thisWidget.zone.y + zoneYCorr)
 
---draw info
+  --draw info
   lcd.setColor( CUSTOM_COLOR, thisWidget.options.COLOR )
   lcd.drawText(10, 10, "GPS Model:", CUSTOM_COLOR)
-  lcd.drawText(10, 40, "Lat: " , CUSTOM_COLOR)
-  lcd.drawText(60, 40, thisWidget.gpsLat, CUSTOM_COLOR)
-  lcd.drawText(10, 60, "Long: " , CUSTOM_COLOR)
-  lcd.drawText(60, 60, thisWidget.gpsLong , CUSTOM_COLOR)
-  lcd.drawText(10, 80, "Hdg: ", CUSTOM_COLOR)
-  lcd.drawText(60, 80, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
+  lcd.drawText(10, 30, thisWidget.gpsLat, CUSTOM_COLOR)
+  lcd.drawText(100, 30, thisWidget.gpsLong , CUSTOM_COLOR)
+  lcd.drawText(10, 50, "Hdg: ", CUSTOM_COLOR)
+  lcd.drawText(60, 50, math.floor(thisWidget.headingDeg) , CUSTOM_COLOR)
 
   local mm = model.getGlobalVariable(8,0)
-  lcd.drawText(10, 100, "GB: " , CUSTOM_COLOR)
-  lcd.drawText(60, 100, mm , CUSTOM_COLOR)
+  lcd.drawText(10, 70, "GB: " , CUSTOM_COLOR)
+  lcd.drawText(60, 70, mm , CUSTOM_COLOR)
 
---  lcd.drawText(10, 120, "Sat: " , CUSTOM_COLOR)
---  lcd.drawText(60, 120, thisWidget.gpsSat , CUSTOM_COLOR) --Sum angle
+  --  lcd.drawText(10, 120, "Sat: " , CUSTOM_COLOR)
+  --  lcd.drawText(60, 120, thisWidget.gpsSat , CUSTOM_COLOR)
+  --  lcd.drawText(10, 120, "Sum Alpha: " , CUSTOM_COLOR)
+  --  lcd.drawText(60, 120, Alpha , CUSTOM_COLOR) --Sum angle
 
-
---  lcd.drawText(10, 120, "Sum Alpha: " , CUSTOM_COLOR)
---  lcd.drawText(60, 120, Alpha , CUSTOM_COLOR) --Sum angle
-
---draw plane  
+  --draw plane  
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,255,255))
-  lcd.drawLine(xvalues.ax , yvalues.ay , xvalues.bx , yvalues.by , SOLID, CUSTOM_COLOR)
-  lcd.drawLine(xvalues.cx , yvalues.cy , xvalues.dx , yvalues.dy , SOLID, CUSTOM_COLOR)
-  lcd.drawLine(xvalues.ex , yvalues.ey , xvalues.fx , yvalues.fy , SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.ax + zoneXCorr , yvalues.ay + zoneYCorr , xvalues.bx + zoneXCorr , yvalues.by + zoneYCorr , SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.cx + zoneXCorr , yvalues.cy + zoneYCorr , xvalues.dx + zoneXCorr , yvalues.dy + zoneYCorr , SOLID, CUSTOM_COLOR)
+  lcd.drawLine(xvalues.ex + zoneXCorr , yvalues.ey + zoneYCorr , xvalues.fx + zoneXCorr , yvalues.fy + zoneYCorr , SOLID, CUSTOM_COLOR)
 
---draw noflightzone
+  --draw noflightzone
   lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
 
-  lcd.drawLine(Pxa -10, Pya -10, Pxb -10, Pyb -10, SOLID, CUSTOM_COLOR)
-  lcd.drawLine(Pxb -10, Pyb -10, Pxd -10, Pyd -10, SOLID, CUSTOM_COLOR)
-  lcd.drawLine(Pxc -10, Pyc -10, Pxa -10, Pya -10, SOLID, CUSTOM_COLOR)
-  lcd.drawLine(Pxd -10, Pyd -10, Pxc -10, Pyc -10, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxa + zoneXCorr, Pya + zoneYCorr, Pxb + zoneXCorr, Pyb + zoneYCorr, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxb + zoneXCorr, Pyb + zoneYCorr, Pxd + zoneXCorr, Pyd + zoneYCorr, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxc + zoneXCorr, Pyc + zoneYCorr, Pxa + zoneXCorr, Pya + zoneYCorr, SOLID, CUSTOM_COLOR)
+  lcd.drawLine(Pxd + zoneXCorr, Pyd + zoneYCorr, Pxc + zoneXCorr, Pyc + zoneYCorr, SOLID, CUSTOM_COLOR)
 
+  lcd.setColor(CUSTOM_COLOR, thisWidget.options.COLOR)
+  lcd.drawText(10 , 90, "Hook: ", CUSTOM_COLOR)
+  lcd.drawText(60, 90, thisWidget.HookRelease.Pos ,  CUSTOM_COLOR)
+  lcd.drawText(10 , 110, thisWidget.HookRelease.Lat, CUSTOM_COLOR)
+  lcd.drawText(100, 110, thisWidget.HookRelease.Long ,  CUSTOM_COLOR)
+  
+  -- draw hook release coordonates and position
+  if thisWidget.HookRelease.Memo == 1 then
+    lcd.setColor(CUSTOM_COLOR, lcd.RGB(255,0,0))
+    lcd.drawLine(HookReleaseX + zoneXCorr - 3, HookReleaseY + zoneYCorr - 3, HookReleaseX + zoneXCorr + 3 , HookReleaseY + zoneYCorr + 3, SOLID, CUSTOM_COLOR )
+    lcd.drawLine(HookReleaseX + zoneXCorr - 3, HookReleaseY + zoneYCorr + 3, HookReleaseX + zoneXCorr + 3 , HookReleaseY + zoneYCorr - 3, SOLID, CUSTOM_COLOR )
+  end
+
+  if thisWidget.options.TXGps == 1 then
+      lcd.setColor(CUSTOM_COLOR, thisWidget.options.COLOR)
+
+      GPSTable = getTxGPS()
+      lcd.drawText(225, 10, "GPS TX:", CUSTOM_COLOR)
+      lcd.drawNumber(325, 10, GPSTable.numsat, LEFT + TEXT_COLOR + SHADOWED);
+
+      if (GPSTable.fix==true) then
+	      lcd.drawText(225, 30, string.format("%f",GPSTable.lat), LEFT + TEXT_COLOR + SHADOWED);
+        lcd.drawText(325, 30, string.format("%f",GPSTable.lon), LEFT + TEXT_COLOR + SHADOWED)
+      end
+  end
 end
+
 return { name="Map", options=options, create=create, update=update, background=background, refresh=refresh }
